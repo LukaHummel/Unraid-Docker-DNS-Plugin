@@ -91,12 +91,16 @@ describe('responsive container list', () => {
 
     await vi.waitFor(() => expect(window.fetch.mock.calls.some(call => call[1] && call[1].method === 'POST')).toBe(true));
     const call = window.fetch.mock.calls.find(entry => entry[1] && entry[1].method === 'POST');
-    expect(JSON.parse(call[1].body)).toMatchObject({
+    const request = Object.fromEntries(new URLSearchParams(call[1].body));
+    expect(call[1].headers['Content-Type']).toContain('application/x-www-form-urlencoded');
+    expect(request).toMatchObject({
       action: 'set-container',
       container_name: 'plex',
-      included: true,
+      included: 'true',
       target_ipv4_override: '192.168.1.44',
       url_override: 'https://plex.home.arpa/app',
+      csrf_token: 'token',
+      docker_dns_csrf_token: 'token',
     });
   });
 });

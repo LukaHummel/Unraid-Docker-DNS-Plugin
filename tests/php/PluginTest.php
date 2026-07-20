@@ -129,7 +129,7 @@ final class PluginTest extends TestCase
             }
             $config->saveOverrides(['revision' => 1, 'containers' => ['old' => ['included' => false]]]);
             $controller->post([
-                'action' => 'save-container-url', 'csrf_token' => 'expected',
+                'action' => 'save-container-url', 'docker_dns_csrf_token' => 'expected',
                 'previous_name' => 'old', 'container_name' => 'new',
                 'url_override' => 'https://new.home.arpa/app',
             ]);

@@ -27,7 +27,8 @@ final class ApiController
     /** @return array<string,mixed> */
     public function post(array $input): array
     {
-        $this->validateCsrf((string)($input['csrf_token'] ?? ''));
+        // Unraid validates and removes the standard form field before this script runs.
+        $this->validateCsrf((string)($input['docker_dns_csrf_token'] ?? $input['csrf_token'] ?? ''));
         return match ((string)($input['action'] ?? '')) {
             'save-container-url' => $this->saveContainerUrl($input),
             'set-container' => $this->setContainer($input),

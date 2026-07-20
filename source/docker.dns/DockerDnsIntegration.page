@@ -7,7 +7,6 @@ Icon="globe"
 .nav-item.DockerDnsIntegration { display: none !important; }
 </style>
 <link rel="stylesheet" href="/plugins/docker.dns/styles/docker-dns.css?v=2026.07.20">
-<script src="/plugins/docker.dns/javascript/docker-dns-integration.js?v=2026.07.20"></script>
-<script src="/plugins/docker.dns/javascript/docker-dns-form.js?v=2026.07.20"></script>
+<script src="/plugins/docker.dns/javascript/docker-dns-integration.js?v=2026.07.22"></script>
+<script src="/plugins/docker.dns/javascript/docker-dns-form.js?v=2026.07.22"></script>
 <script>function DockerDnsIntegration() { return false; }</script>
-

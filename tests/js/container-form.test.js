@@ -28,9 +28,13 @@ describe('container form integration', () => {
     document.querySelector('[name="contName"]').value = 'plex-new';
     document.getElementById('docker-dns-url-save').click();
     await new Promise(resolve => window.setTimeout(resolve, 0));
-    const request = JSON.parse(window.fetch.mock.calls.find(call => call[1] && call[1].method === 'POST')[1].body);
+    const call = window.fetch.mock.calls.find(call => call[1] && call[1].method === 'POST');
+    const request = Object.fromEntries(new URLSearchParams(call[1].body));
+    expect(call[1].headers['Content-Type']).toContain('application/x-www-form-urlencoded');
     expect(request.previous_name).toBe('plex');
     expect(request.container_name).toBe('plex-new');
     expect(request.url_override).toBe('https://plex.home.arpa/app');
+    expect(request.csrf_token).toBe('token');
+    expect(request.docker_dns_csrf_token).toBe('token');
   });
 });

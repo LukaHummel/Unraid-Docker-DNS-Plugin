@@ -22,11 +22,16 @@
   }
 
   function api(payload) {
+    var token = csrf();
+    var body = new URLSearchParams(Object.assign({}, payload, {
+      csrf_token: token,
+      docker_dns_csrf_token: token
+    }));
     return window.fetch(API, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(Object.assign({csrf_token: csrf()}, payload))
+      headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+      body: body.toString()
     }).then(function (response) {
       return response.json().then(function (body) {
         if (!response.ok || body.ok === false) throw new Error(body.error || 'Docker DNS API request failed.');
