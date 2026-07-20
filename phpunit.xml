@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="source/docker.dns/include/bootstrap.php" colors="true" cacheDirectory=".phpunit.cache">
+  <testsuites><testsuite name="Docker DNS"><directory>tests/php</directory></testsuite></testsuites>
+</phpunit>
+

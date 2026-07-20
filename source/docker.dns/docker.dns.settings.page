@@ -1,0 +1,35 @@
+Menu="OtherSettings"
+Title="Docker DNS"
+Icon="globe"
+---
+<link rel="stylesheet" href="/plugins/docker.dns/styles/docker-dns.css?v=2026.07.20">
+<div id="docker-dns-settings">
+  <form id="docker-dns-provider-form" onsubmit="return false">
+    <fieldset>
+      <legend>Synchronization</legend>
+      <dl><dt>Enabled:</dt><dd><select id="docker-dns-enabled"><option value="false">No</option><option value="true">Yes</option></select></dd></dl>
+      <dl><dt>DNS provider:</dt><dd><select id="docker-dns-provider"><option value="adguard">AdGuard Home</option><option value="pihole">Pi-hole v6</option></select></dd></dl>
+      <dl><dt>API base URL:</dt><dd><input id="docker-dns-base-url" type="url" placeholder="http://192.168.1.2:3000" required></dd></dl>
+      <dl id="docker-dns-username-row"><dt>Username:</dt><dd><input id="docker-dns-username" type="text" autocomplete="username"></dd></dl>
+      <dl><dt>Password:</dt><dd><input id="docker-dns-password" type="password" autocomplete="new-password" placeholder="Leave empty to keep the stored password"></dd></dl>
+      <dl><dt>Verify TLS certificates:</dt><dd><select id="docker-dns-verify-tls"><option value="true">Yes</option><option value="false">No</option></select></dd></dl>
+      <dl><dt>Unraid IPv4 override:</dt><dd><input id="docker-dns-host-ip" type="text" inputmode="decimal" placeholder="Detected automatically"></dd></dl>
+      <dl><dt>Request timeout:</dt><dd><input id="docker-dns-timeout" type="number" min="2" max="60" value="10"> seconds</dd></dl>
+    </fieldset>
+    <div class="docker-dns-actions">
+      <button type="button" id="docker-dns-save-settings">Save</button>
+      <button type="button" id="docker-dns-test">Test Connection</button>
+      <button type="button" id="docker-dns-sync">Sync Now</button>
+      <button type="button" id="docker-dns-cleanup">Cleanup All</button>
+    </div>
+  </form>
+  <div id="docker-dns-status" class="docker-dns-status">Loading Docker DNS status…</div>
+  <h2>Containers with published ports</h2>
+  <div class="table-responsive">
+    <table id="docker-dns-containers">
+      <thead><tr><th>Include</th><th>Container</th><th>Published ports</th><th>Hostname</th><th>Target IPv4</th><th>Automatic URL</th><th>URL override</th><th>DNS status</th><th>Menu integration</th><th></th></tr></thead>
+      <tbody><tr><td colspan="10">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+<script src="/plugins/docker.dns/javascript/docker-dns-settings.js?v=2026.07.20"></script>

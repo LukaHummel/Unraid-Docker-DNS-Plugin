@@ -1,0 +1,36 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name "docker.dns">
+<!ENTITY author "Luka Hummel">
+<!ENTITY version "2026.07.20">
+<!ENTITY build "1">
+<!ENTITY package "&name;-&version;-noarch-&build;.txz">
+<!ENTITY pluginDir "/boot/config/plugins/&name;">
+<!ENTITY packageUrl "https://github.com/luka-codefortynine/UnraidDockerDNSPlugin/releases/download/v&version;/&package;">
+]>
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="Settings/docker.dns.settings" pluginURL="https://raw.githubusercontent.com/luka-codefortynine/UnraidDockerDNSPlugin/main/docker.dns.plg" icon="globe" min="7.0" support="https://github.com/luka-codefortynine/UnraidDockerDNSPlugin/issues" project="https://github.com/luka-codefortynine/UnraidDockerDNSPlugin" readme="https://github.com/luka-codefortynine/UnraidDockerDNSPlugin#readme">
+<CHANGES>
+###2026.07.20
+- Initial beta release
+</CHANGES>
+<FILE Name="&pluginDir;/&package;" Run="upgradepkg --install-new">
+  <URL>&packageUrl;</URL>
+  <MD5>00000000000000000000000000000000</MD5>
+</FILE>
+<FILE Run="/bin/bash">
+<INLINE>
+mkdir -p '&pluginDir;'
+chmod 700 '&pluginDir;'
+/usr/local/emhttp/plugins/docker.dns/scripts/install.sh
+</INLINE>
+</FILE>
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+/usr/local/emhttp/plugins/docker.dns/scripts/remove.sh || true
+removepkg &name; 2>/dev/null || true
+rm -rf /usr/local/emhttp/plugins/&name;
+rm -rf '&pluginDir;'
+</INLINE>
+</FILE>
+</PLUGIN>
+

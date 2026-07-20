@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Docker DNS">
+  <rect width="128" height="128" rx="24" fill="#1f2937"/>
+  <path d="M22 43h17v17H22zm21 0h17v17H43zm21 0h17v17H64zM43 22h17v17H43zm21 21h17v17H64zm21 0h17v17H85z" fill="#60a5fa"/>
+  <path d="M18 67h89c-3 25-19 39-46 39-24 0-39-12-43-39z" fill="#38bdf8"/>
+  <circle cx="96" cy="78" r="5" fill="#1f2937"/>
+  <path d="M74 86c9 2 18-1 24-8" fill="none" stroke="#1f2937" stroke-width="5" stroke-linecap="round"/>
+  <path d="M104 36c9 0 16 7 16 16-9 0-16-7-16-16z" fill="#22c55e"/>
+</svg>
+

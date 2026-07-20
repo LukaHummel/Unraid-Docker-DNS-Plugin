@@ -1,0 +1,10 @@
+#docker-dns-settings fieldset { margin-bottom: 1.5rem; }
+#docker-dns-settings .docker-dns-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin: 1rem 0; }
+#docker-dns-settings .docker-dns-status { padding: .75rem; border-left: 4px solid #999; white-space: pre-wrap; }
+#docker-dns-settings .docker-dns-error { border-color: #d9534f; color: #d9534f; }
+#docker-dns-settings table { width: 100%; }
+#docker-dns-settings td input[type="url"], #docker-dns-settings td input[type="text"] { min-width: 14rem; }
+.docker-dns-url-controls { display: flex; gap: .5rem; align-items: center; }
+.docker-dns-url-controls input { flex: 1 1 30rem; }
+.docker-dns-url-help { display: block; opacity: .75; margin-top: .35rem; }
+
