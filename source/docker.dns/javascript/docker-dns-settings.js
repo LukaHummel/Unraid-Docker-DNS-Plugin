@@ -4,7 +4,8 @@
   var API = '/plugins/docker.dns/include/Api.php';
   var root = document.getElementById('docker-dns-settings');
   if (!root) return;
-  var body = document.querySelector('#docker-dns-containers tbody');
+  var list = document.getElementById('docker-dns-containers');
+  var count = document.getElementById('docker-dns-container-count');
   var status = document.getElementById('docker-dns-status');
 
   function csrf() { return typeof window.csrf_token === 'string' ? window.csrf_token : ''; }
@@ -12,6 +13,9 @@
     var node = document.createElement('div');
     node.textContent = value == null ? '' : String(value);
     return node.innerHTML;
+  }
+  function escapeAttribute(value) {
+    return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
   function api(payload) {
     return window.fetch(API, {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
@@ -45,8 +49,18 @@
   function formatPorts(ports) {
     return (ports || []).map(function (p) { return p.public + '→' + p.private + '/' + p.protocol; }).join(', ');
   }
-  function integrationStatus(state) {
-    return state.integration_warning ? 'Compatibility warning' : 'No compatibility warning reported';
+  function dnsStatusClass(value) {
+    value = String(value || '').toLowerCase();
+    if (value === 'synchronized') return ' is-success';
+    if (value === 'pending' || value === 'excluded') return ' is-neutral';
+    return ' is-warning';
+  }
+  function automaticUrl(url) {
+    if (!url) return '<span class="docker-dns-muted">No automatic TCP URL</span>';
+    var safeUrl = escapeHtml(url);
+    var safeAttribute = escapeAttribute(url);
+    return '<a href="' + safeAttribute + '" target="_blank" rel="noopener" title="' + safeAttribute + '">' +
+      safeUrl + '<span class="docker-dns-external" aria-hidden="true">↗</span></a>';
   }
   function render(data) {
     var settings = data.settings;
@@ -66,21 +80,43 @@
     if (state.integration_warning) summary += '\nMenu integration: ' + state.integration_warning;
     message(summary, !!state.last_error);
     var containers = Object.keys(state.containers || {}).map(function (name) { return state.containers[name]; });
+    count.textContent = containers.length + (containers.length === 1 ? ' container' : ' containers');
     if (!containers.length) {
-      body.innerHTML = '<tr><td colspan="10">No containers with explicit published ports were discovered.</td></tr>';
+      list.innerHTML = '<p class="docker-dns-empty">No containers with explicit published ports were discovered.</p>';
       return;
     }
-    body.innerHTML = containers.map(function (container) {
+    list.innerHTML = containers.map(function (container) {
       var url = container.url_override || '';
-      return '<tr data-container="' + escapeHtml(container.name) + '">' +
-        '<td><input class="docker-dns-include" type="checkbox" ' + (container.included ? 'checked' : '') + '></td>' +
-        '<td>' + escapeHtml(container.name) + '</td><td>' + escapeHtml(formatPorts(container.ports)) + '</td>' +
-        '<td>' + escapeHtml(container.hostname) + '</td>' +
-        '<td><input class="docker-dns-ip" type="text" value="' + escapeHtml(container.target_status === 'override' ? container.target_ipv4 : '') + '" placeholder="' + escapeHtml(container.target_ipv4 || container.target_status) + '"></td>' +
-        '<td><a href="' + escapeHtml(container.automatic_url || '#') + '" target="_blank" rel="noopener">' + escapeHtml(container.automatic_url || 'UDP only') + '</a></td>' +
-        '<td><input class="docker-dns-override" type="url" value="' + escapeHtml(url) + '" placeholder="Use automatic URL"></td>' +
-        '<td>' + escapeHtml(container.dns_status) + '</td><td>' + escapeHtml(integrationStatus(state)) + '</td>' +
-        '<td><button type="button" class="docker-dns-save-container">Save</button></td></tr>';
+      var target = container.target_ipv4 || '';
+      var targetHint = target ? 'Current target: ' + target + ' · ' + container.target_status : container.target_status;
+      var ports = formatPorts(container.ports);
+      return '<article class="docker-dns-container' + (container.running ? '' : ' is-stopped') + '" data-container="' + escapeAttribute(container.name) + '">' +
+        '<div class="docker-dns-container-summary">' +
+          '<div class="docker-dns-container-title">' +
+            '<label class="docker-dns-include-label" title="Include this container in DNS synchronization">' +
+              '<input class="docker-dns-include" type="checkbox" ' + (container.included ? 'checked' : '') + '>' +
+              '<span>' + escapeHtml(container.name) + '</span>' +
+            '</label>' +
+            '<span class="docker-dns-badge' + dnsStatusClass(container.dns_status) + '">' + escapeHtml(container.dns_status) + '</span>' +
+          '</div>' +
+          '<div class="docker-dns-container-meta">' +
+            '<span title="Hostname">' + escapeHtml(container.hostname) + '</span>' +
+            '<span class="docker-dns-ports" title="Published ports: ' + escapeAttribute(ports) + '">' + escapeHtml(ports) + '</span>' +
+            (container.running ? '' : '<span class="docker-dns-stopped">Stopped</span>') +
+          '</div>' +
+        '</div>' +
+        '<label class="docker-dns-field docker-dns-ip-field">' +
+          '<span>Target IPv4 override</span>' +
+          '<input class="docker-dns-ip" type="text" inputmode="decimal" value="' + escapeAttribute(container.target_status === 'override' ? target : '') + '" placeholder="Automatic">' +
+          '<small title="' + escapeAttribute(targetHint) + '">' + escapeHtml(targetHint) + '</small>' +
+        '</label>' +
+        '<label class="docker-dns-field docker-dns-url-field">' +
+          '<span>Web UI URL override</span>' +
+          '<input class="docker-dns-override" type="url" value="' + escapeAttribute(url) + '" placeholder="Use automatic URL">' +
+          '<small>Automatic: ' + automaticUrl(container.automatic_url) + '</small>' +
+        '</label>' +
+        '<button type="button" class="docker-dns-save-container">Save</button>' +
+      '</article>';
     }).join('');
   }
   function load() {
@@ -109,9 +145,9 @@
   document.getElementById('docker-dns-cleanup').addEventListener('click', function () {
     if (window.confirm('Remove every DNS hostname currently managed by Docker DNS?')) perform({action: 'cleanup-all'}, 'Managed DNS records removed.');
   });
-  body.addEventListener('click', function (event) {
+  list.addEventListener('click', function (event) {
     if (!event.target.classList.contains('docker-dns-save-container')) return;
-    var row = event.target.closest('tr');
+    var row = event.target.closest('.docker-dns-container');
     perform({action: 'set-container', container_name: row.dataset.container,
       included: row.querySelector('.docker-dns-include').checked,
       target_ipv4_override: row.querySelector('.docker-dns-ip').value,

@@ -2,7 +2,7 @@ Menu="OtherSettings"
 Title="Docker DNS"
 Icon="globe"
 ---
-<link rel="stylesheet" href="/plugins/docker.dns/styles/docker-dns.css?v=2026.07.20">
+<link rel="stylesheet" href="/plugins/docker.dns/styles/docker-dns.css?v=2026.07.21">
 <div id="docker-dns-settings">
   <form id="docker-dns-provider-form" onsubmit="return false">
     <fieldset>
@@ -24,12 +24,17 @@ Icon="globe"
     </div>
   </form>
   <div id="docker-dns-status" class="docker-dns-status">Loading Docker DNS status…</div>
-  <h2>Containers with published ports</h2>
-  <div class="table-responsive">
-    <table id="docker-dns-containers">
-      <thead><tr><th>Include</th><th>Container</th><th>Published ports</th><th>Hostname</th><th>Target IPv4</th><th>Automatic URL</th><th>URL override</th><th>DNS status</th><th>Menu integration</th><th></th></tr></thead>
-      <tbody><tr><td colspan="10">Loading…</td></tr></tbody>
-    </table>
-  </div>
+  <section class="docker-dns-container-section" aria-labelledby="docker-dns-container-heading">
+    <header class="docker-dns-section-heading">
+      <div>
+        <h2 id="docker-dns-container-heading">Container List</h2>
+        <p>Containers with published ports</p>
+      </div>
+      <span id="docker-dns-container-count" class="docker-dns-count" aria-live="polite"></span>
+    </header>
+    <div id="docker-dns-containers" class="docker-dns-container-list" aria-live="polite">
+      <p class="docker-dns-empty">Loading…</p>
+    </div>
+  </section>
 </div>
-<script src="/plugins/docker.dns/javascript/docker-dns-settings.js?v=2026.07.20"></script>
+<script src="/plugins/docker.dns/javascript/docker-dns-settings.js?v=2026.07.21"></script>
