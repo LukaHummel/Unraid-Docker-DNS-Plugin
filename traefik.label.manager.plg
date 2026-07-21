@@ -28,7 +28,7 @@
 </CHANGES>
 <FILE Name="&pluginDir;/&package;" Run="upgradepkg --install-new">
   <URL>&packageUrl;</URL>
-  <MD5>1eb3191f5ca91a1fe9e51d7fd3bc83a8</MD5>
+  <MD5>28982079d9c19fa08388f14550cbe44a</MD5>
 </FILE>
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
