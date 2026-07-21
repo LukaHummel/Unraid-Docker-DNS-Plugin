@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../source/traefik.label.manager/include/bootstrap.php';
 
+use TraefikLabelManager\LabelCatalog;
 use TraefikLabelManager\LabelManager;
+use TraefikLabelManager\SettingsStore;
 
 function assert_true(bool $condition, string $message): void
 {
@@ -32,6 +34,7 @@ $xml = <<<'XML'
   <Config Name="WebUI" Target="32400" Default="" Mode="tcp" Description="" Type="Port" Display="always" Required="false" Mask="false">32400</Config>
   <Config Name="Discovery" Target="1900" Default="" Mode="udp" Description="" Type="Port" Display="always" Required="false" Mask="false">1900</Config>
   <Config Name="Manual" Target="manual.label" Default="" Mode="" Description="" Type="Label" Display="always" Required="false" Mask="false">keep</Config>
+  <Config Name="Future" Target="traefik.experimental.future-option" Default="" Mode="" Description="" Type="Label" Display="always" Required="false" Mask="false">keep</Config>
   <Config Name="Rule" Target="traefik.http.routers.plex.rule" Default="" Mode="" Description="" Type="Label" Display="always" Required="false" Mask="false">Host(`template.home.arpa`)</Config>
   <Config Name="Environment" Target="TZ" Default="" Mode="" Description="" Type="Variable" Display="always" Required="false" Mask="false">Europe/Berlin</Config>
 </Container>
@@ -72,6 +75,28 @@ $runner = static function (array $arguments): string {
 };
 
 $manager = new LabelManager($directory, $lock, $runner);
+$settings = new SettingsStore($directory . '/settings.json', $lock);
+assert_same('home.arpa', $settings->domainSuffix(), 'The global domain suffix must default to home.arpa.');
+$savedSettings = $settings->saveDomainSuffix('.apps.internal');
+assert_same('apps.internal', $savedSettings['domain_suffix'], 'A leading dot must be removed when saving the domain suffix.');
+assert_same('apps.internal', $settings->domainSuffix(), 'The saved domain suffix must persist.');
+$invalidDomainRejected = false;
+try {
+    $settings->saveDomainSuffix('Apps_Internal');
+} catch (InvalidArgumentException) {
+    $invalidDomainRejected = true;
+}
+assert_true($invalidDomainRejected, 'Invalid or uppercase domain suffixes must be rejected.');
+$catalog = LabelCatalog::definitions();
+assert_same(60, count($catalog), 'The Docker label catalog must expose every option represented by the reference page.');
+foreach ($catalog as $definition) {
+    $key = str_replace(
+        ['<router_name>', '<service_name>', '<middleware_name>', '<header_name>', '<middleware_option>', '[n]'],
+        ['test', 'test', 'test', 'x-test', 'headers.customrequestheaders.x-test', '[0]'],
+        $definition['template'],
+    );
+    assert_true(LabelCatalog::matches($key), "Catalog template must validate its resolved key: $key");
+}
 $containers = $manager->containers();
 assert_same(['edge', 'traefik-lab', 'database', 'plex'], array_column($containers, 'name'), 'Traefik containers must be pinned before other alphabetically sorted containers.');
 assert_same([true, true, false, false], array_column($containers, 'is_traefik'), 'Traefik detection must support image and container names.');
@@ -93,6 +118,7 @@ $manager->save('plex', [
 ]);
 $saved = file_get_contents($template);
 assert_true($saved !== false && str_contains($saved, 'Target="manual.label"'), 'Unrelated labels must be retained.');
+assert_true(str_contains($saved, 'Target="traefik.experimental.future-option"'), 'Unrecognized Traefik labels must be retained without being managed.');
 assert_true(str_contains($saved, 'Target="TZ"'), 'Unrelated template entries must be retained.');
 assert_true(str_contains($saved, 'Host(`plex.home.arpa`)'), 'Edited Traefik values must be saved.');
 $templateLabels = $manager->readTemplateLabels($template);
@@ -106,6 +132,14 @@ try {
     $invalidRejected = true;
 }
 assert_true($invalidRejected, 'Labels outside the allowed namespaces must be rejected.');
+
+$unknownTraefikRejected = false;
+try {
+    $manager->save('plex', [['key' => 'traefik.http.routers.plex.not-a-real-option', 'value' => 'true']]);
+} catch (InvalidArgumentException) {
+    $unknownTraefikRejected = true;
+}
+assert_true($unknownTraefikRejected, 'Unknown keys inside the Traefik namespace must be rejected.');
 
 $duplicateRejected = false;
 try {
@@ -126,7 +160,41 @@ try {
 }
 assert_true($missingRejected, 'Containers without templates must not be writable.');
 
+putenv('TRAEFIK_LABEL_MANAGER_TEMPLATE_DIR=' . $directory);
+putenv('TRAEFIK_LABEL_MANAGER_LOCK_FILE=' . $lock);
+putenv('TRAEFIK_LABEL_MANAGER_SETTINGS_FILE=' . $directory . '/settings.json');
+putenv('TRAEFIK_LABEL_MANAGER_CSRF_TOKEN=test-token');
+$_SERVER['REQUEST_METHOD'] = 'POST';
+$_SERVER['CONTENT_TYPE'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+$_POST = [
+    'csrf_token' => 'test-token',
+    'payload' => json_encode([
+        'action' => 'save',
+        'container' => 'plex',
+        'labels' => [['key' => 'traefik.enable', 'value' => 'true']],
+    ], JSON_THROW_ON_ERROR),
+];
+ob_start();
+require __DIR__ . '/../../source/traefik.label.manager/include/Api.php';
+$apiResponse = json_decode((string)ob_get_clean(), true, flags: JSON_THROW_ON_ERROR);
+assert_same(true, $apiResponse['ok'] ?? null, 'The API must accept form-encoded requests with Unraid\'s standard CSRF field.');
+assert_same('plex', $apiResponse['container'] ?? null, 'The form-encoded API request must save the requested container.');
+
+$_POST = [
+    'csrf_token' => 'test-token',
+    'payload' => json_encode([
+        'action' => 'save_settings',
+        'domain_suffix' => 'services.internal',
+    ], JSON_THROW_ON_ERROR),
+];
+ob_start();
+require __DIR__ . '/../../source/traefik.label.manager/include/Api.php';
+$settingsApiResponse = json_decode((string)ob_get_clean(), true, flags: JSON_THROW_ON_ERROR);
+assert_same(true, $settingsApiResponse['ok'] ?? null, 'The settings API route must accept the standard CSRF form field.');
+assert_same('services.internal', $settingsApiResponse['domain_suffix'] ?? null, 'The settings API route must save the domain suffix.');
+
 @unlink($lock);
+@unlink($directory . '/settings.json');
 @unlink($template);
 @rmdir($directory);
 echo "PHP label manager tests passed.\n";

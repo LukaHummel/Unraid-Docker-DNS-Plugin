@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "traefik.label.manager">
 <!ENTITY author "Luka Hummel">
-<!ENTITY version "2026.07.21.4">
+<!ENTITY version "2026.07.21.5">
 <!ENTITY build "1">
 <!ENTITY package "&name;-&version;-noarch-&build;.txz">
 <!ENTITY pluginDir "/boot/config/plugins/&name;">
@@ -10,6 +10,12 @@
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="Settings/traefik.label.manager.settings" pluginURL="https://github.com/LukaHummel/Traefik-Label-Manager/releases/latest/download/traefik.label.manager.plg" icon="globe" min="7.0" support="https://github.com/LukaHummel/Traefik-Label-Manager/issues" project="https://github.com/LukaHummel/Traefik-Label-Manager" readme="https://github.com/LukaHummel/Traefik-Label-Manager#readme">
 <CHANGES>
+###2026.07.21.5
+- Added a persistent global domain suffix setting with home.arpa as the default
+- Changed container forms to edit only the hostname label beside the fixed suffix
+- Applied the configured suffix to routes generated from the Settings page
+- Fixed Save Template and Apply &amp; Restart requests failing Unraid CSRF validation
+
 ###2026.07.21.4
 - Fixed late-loaded Unraid port fields leaving route controls disabled
 - Restored managed route values when template fields load asynchronously
@@ -34,7 +40,7 @@
 </CHANGES>
 <FILE Name="&pluginDir;/&package;" Run="upgradepkg --install-new">
   <URL>&packageUrl;</URL>
-  <MD5>771f3b1d075e1e4c0baa0620e69a4c92</MD5>
+  <MD5>5119968ad4d2eac6ecf4ef51c64a3edf</MD5>
 </FILE>
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>

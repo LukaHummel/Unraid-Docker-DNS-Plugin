@@ -2,9 +2,27 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 import fs from 'node:fs';
 
 const source = fs.readFileSync('source/traefik.label.manager/javascript/traefik-label-settings.js', 'utf8');
+const labelCatalog = [
+  {group: 'General', template: 'traefik.enable',
+    description: 'Includes or excludes this container from Traefik discovery.', example: 'true'},
+  {group: 'HTTP router', template: 'traefik.http.routers.<router_name>.rule',
+    description: 'Defines the HTTP rule that matches requests for this router.', example: 'Host(`example.com`)'},
+  {group: 'HTTP router', template: 'traefik.http.routers.<router_name>.service',
+    description: 'Assigns the named HTTP service to this router.', example: 'myservice'},
+  {group: 'HTTP service', template: 'traefik.http.services.<service_name>.loadbalancer.server.port',
+    description: 'Selects the container port used by this HTTP service.', example: '8080'},
+  {group: 'HTTP middleware', template: 'traefik.http.middlewares.<middleware_name>.<middleware_option>',
+    description: 'Defines an HTTP middleware option.', example: 'value'}
+];
 
-function response(body, ok = true) {
-  return Promise.resolve({ok, json: () => Promise.resolve(body)});
+function response(body, ok = true, status = ok ? 200 : 500) {
+  const text = typeof body === 'string' ? body : JSON.stringify(body);
+  return Promise.resolve({ok, status, text: () => Promise.resolve(text)});
+}
+
+function postedPayload(call) {
+  const parameters = new URLSearchParams(call[1].body);
+  return {parameters, payload: JSON.parse(parameters.get('payload'))};
 }
 
 function container(overrides = {}) {
@@ -19,11 +37,12 @@ function container(overrides = {}) {
 async function load(containers = [container()]) {
   document.body.innerHTML = `
     <section id="traefik-label-manager-settings">
-      <button id="tlm-refresh"></button><div id="tlm-page-message"></div><div id="tlm-containers"></div>
+      <button id="tlm-refresh"></button><input id="tlm-domain-suffix"><button id="tlm-save-domain"></button>
+      <div id="tlm-page-message"></div><div id="tlm-containers"></div>
     </section>
     <div id="tlm-update-modal" hidden><strong id="tlm-update-title"></strong><button id="tlm-update-close"></button>
       <iframe id="tlm-update-frame"></iframe></div>`;
-  window.fetch = vi.fn(() => response({ok: true, containers}));
+  window.fetch = vi.fn(() => response({ok: true, label_catalog: labelCatalog, containers}));
   window.csrf_token = 'token';
   window.confirm = vi.fn(() => true);
   window.eval(source);
@@ -83,18 +102,39 @@ describe('Traefik Label Manager settings page', () => {
     card.querySelector('.tlm-save-template').click();
     await new Promise(resolve => window.setTimeout(resolve, 0));
     const call = window.fetch.mock.calls[1];
-    const payload = JSON.parse(call[1].body);
-    expect(payload).toEqual({action: 'save', container: 'plex', labels: [{key: 'traefik.enable', value: 'true'}],
-      traefik_label_manager_csrf_token: 'token'});
+    const {parameters, payload} = postedPayload(call);
+    expect(parameters.get('csrf_token')).toBe('token');
+    expect(payload).toEqual({action: 'save', container: 'plex',
+      labels: [{key: 'traefik.enable', value: 'true'}]});
   });
 
-  it('rejects label keys outside the editable namespaces in the browser', async () => {
+  it('rejects arbitrary traefik keys that are not in the Docker label catalog', async () => {
     const card = await load();
-    card.querySelector('.tlm-label-key').value = 'manual.label';
+    card.querySelector('.tlm-label-key').value = 'traefik.http.routers.plex.not-a-real-option';
     card.querySelector('.tlm-save-template').click();
     await new Promise(resolve => window.setTimeout(resolve, 0));
     expect(window.fetch).toHaveBeenCalledTimes(1);
-    expect(document.getElementById('tlm-page-message').textContent).toContain('Only traefik.*');
+    expect(document.getElementById('tlm-page-message').textContent).toContain('Traefik Docker label catalog');
+  });
+
+  it('only creates catalog labels and explains each label on hover', async () => {
+    const card = await load([container({name: 'Plex Media', labels: [], pending: false})]);
+    const picker = card.querySelector('.tlm-label-catalog');
+    expect([...picker.options].map(option => option.value)).toContain('traefik.http.routers.<router_name>.rule');
+    expect([...picker.options].map(option => option.value)).not.toContain('manual.label');
+    picker.value = 'traefik.http.routers.<router_name>.rule';
+    picker.dispatchEvent(new Event('change'));
+    card.querySelector('.tlm-add-label').click();
+    const key = card.querySelector('.tlm-label-key');
+    expect(key.value).toBe('traefik.http.routers.tlm-plex-media-9b92ff80.rule');
+    expect(card.querySelector('.tlm-label-value').value).toBe('Host(`example.com`)');
+    const help = card.querySelector('.tlm-label-help');
+    expect(help.getAttribute('data-tooltip')).toContain('Example value');
+    help.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(document.getElementById('tlm-label-tooltip').textContent).toContain('matches requests');
+    expect(document.getElementById('tlm-label-tooltip').hidden).toBe(false);
+    help.dispatchEvent(new MouseEvent('mouseleave'));
+    expect(document.getElementById('tlm-label-tooltip').hidden).toBe(true);
   });
 
   it('saves and opens Unraid container update for Apply & Restart', async () => {
@@ -103,8 +143,22 @@ describe('Traefik Label Manager settings page', () => {
     card.querySelector('.tlm-primary').click();
     await new Promise(resolve => window.setTimeout(resolve, 0));
     await new Promise(resolve => window.setTimeout(resolve, 0));
+    const {parameters, payload} = postedPayload(window.fetch.mock.calls[1]);
+    expect(parameters.get('csrf_token')).toBe('token');
+    expect(payload.action).toBe('save');
     expect(document.getElementById('tlm-update-modal').hidden).toBe(false);
     expect(document.getElementById('tlm-update-frame').getAttribute('src')).toContain('CreateDocker.php?updateContainer=true&ct[]=plex');
+  });
+
+  it('reports an empty save response without exposing a JSON parser error', async () => {
+    const card = await load();
+    window.fetch.mockImplementationOnce(() => response('', false, 403));
+    card.querySelector('.tlm-primary').click();
+    await new Promise(resolve => window.setTimeout(resolve, 0));
+    await new Promise(resolve => window.setTimeout(resolve, 0));
+    expect(document.getElementById('tlm-page-message').textContent).toContain('server returned an empty response');
+    expect(document.getElementById('tlm-page-message').textContent).not.toContain('JSON');
+    expect(document.getElementById('tlm-update-modal').hidden).toBe(true);
   });
 
   it('generates the same default route labels from the Settings page', async () => {
@@ -124,6 +178,20 @@ describe('Traefik Label Manager settings page', () => {
       [`traefik.http.services.${id}.loadbalancer.server.port`]: '32400'
     });
     expect(document.getElementById('tlm-page-message').textContent).toContain('Default route added');
+  });
+
+  it('saves and uses a custom global domain suffix', async () => {
+    const card = await load([container({name: 'Plex Media', pending: false, labels: [], default_backend_port: 32400})]);
+    document.getElementById('tlm-domain-suffix').value = '.apps.internal';
+    window.fetch.mockImplementationOnce(() => response({ok: true, domain_suffix: 'apps.internal'}));
+    document.getElementById('tlm-save-domain').click();
+    await new Promise(resolve => window.setTimeout(resolve, 0));
+    const {parameters, payload} = postedPayload(window.fetch.mock.calls[1]);
+    expect(parameters.get('csrf_token')).toBe('token');
+    expect(payload).toEqual({action: 'save_settings', domain_suffix: 'apps.internal'});
+    card.querySelector('.tlm-route-defaults').click();
+    const ruleRow = [...card.querySelectorAll('tbody tr')].find(row => row.querySelector('.tlm-label-key').value.endsWith('.rule'));
+    expect(ruleRow.querySelector('.tlm-label-value').value).toBe('Host(`plex-media.apps.internal`)');
   });
 
   it('renders label contents as text rather than markup', async () => {

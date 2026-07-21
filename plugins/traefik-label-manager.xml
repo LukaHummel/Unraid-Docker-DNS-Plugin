@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Plugin>
   <Name>Traefik Label Manager</Name>
-  <Overview>View and edit Traefik Docker labels for every Unraid container under Settings and Network Services. Configure Traefik v2 or v3 with the standalone Docker provider, exposedByDefault=false, useBindPortIP=true, and appropriately secured Docker API access. Point *.home.arpa at Traefik in your DNS server. Enable a route from a container's Add/Update form, or compare and edit saved versus active labels on the settings page. Save Template is non-disruptive; Apply &amp; Restart recreates the container through Unraid so label changes become active. Entrypoints, HTTPS, certificates, DNS, Traefik, and container lifecycle policy remain user-managed.</Overview>
+  <Overview>View and edit Traefik Docker labels for every Unraid container under Settings and Network Services. Configure Traefik v2 or v3 with the standalone Docker provider, exposedByDefault=false, useBindPortIP=true, and appropriately secured Docker API access. Choose a domain suffix in the plugin and point its wildcard at Traefik in your DNS server. Enable a route from a container's Add/Update form, or compare and edit saved versus active labels on the settings page. Save Template is non-disruptive; Apply &amp; Restart recreates the container through Unraid so label changes become active. Entrypoints, HTTPS, certificates, DNS, Traefik, and container lifecycle policy remain user-managed.</Overview>
   <PluginURL>https://github.com/LukaHummel/Traefik-Label-Manager/releases/latest/download/traefik.label.manager.plg</PluginURL>
   <PluginAuthor>Luka Hummel</PluginAuthor>
   <Support>https://github.com/LukaHummel/Traefik-Label-Manager/issues</Support>

@@ -21,3 +21,8 @@ function traefik_label_manager_lock_file(): string
 {
     return getenv('TRAEFIK_LABEL_MANAGER_LOCK_FILE') ?: '/var/lock/traefik-label-manager.lock';
 }
+
+function traefik_label_manager_settings_file(): string
+{
+    return getenv('TRAEFIK_LABEL_MANAGER_SETTINGS_FILE') ?: '/boot/config/plugins/traefik.label.manager/settings.json';
+}

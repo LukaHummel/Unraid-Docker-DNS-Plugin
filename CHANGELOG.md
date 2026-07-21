@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.07.21.5
+
+- Add a persistent global domain suffix setting, defaulting to `home.arpa`.
+- Show only the editable hostname label in container forms, with the configured
+  suffix displayed alongside it.
+- Use the configured suffix for routes generated from the Settings page.
+- Validate and atomically persist the suffix with CSRF-protected settings updates.
+- Replace free-form label creation with Traefik's Docker label catalog and add
+  hover/focus help for every catalog entry.
+- Fix Save Template and Apply & Restart requests being rejected by Unraid's
+  WebGUI CSRF gate, which caused an empty JSON response error.
+
 ## 2026.07.21.4
 
 - Detect port and label fields that Unraid adds after the integration loads.

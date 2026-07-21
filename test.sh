@@ -21,7 +21,7 @@ grep -F -q 'exposedByDefault: false' README.md
 grep -F -q 'useBindPortIP: true' README.md
 grep -F -q 'exposedByDefault=false' plugins/traefik-label-manager.xml
 grep -F -q 'useBindPortIP=true' plugins/traefik-label-manager.xml
-grep -F -q 'Point *.home.arpa at Traefik' plugins/traefik-label-manager.xml
+grep -F -q 'Choose a domain suffix' plugins/traefik-label-manager.xml
 grep -F -q 'Menu="NetworkServices:50"' source/traefik.label.manager/traefik.label.manager.settings.page
 if grep -F -q 'Type="xmenu"' source/traefik.label.manager/traefik.label.manager.settings.page; then
   echo 'The settings page must render as a normal Network Services child page.' >&2
@@ -36,7 +36,9 @@ expected_source_files="$(printf '%s\n' \
   source/traefik.label.manager/icons/icon.svg \
   source/traefik.label.manager/include/Api.php \
   source/traefik.label.manager/include/CsrfException.php \
+  source/traefik.label.manager/include/LabelCatalog.php \
   source/traefik.label.manager/include/LabelManager.php \
+  source/traefik.label.manager/include/SettingsStore.php \
   source/traefik.label.manager/include/bootstrap.php \
   source/traefik.label.manager/javascript/traefik-label-form.js \
   source/traefik.label.manager/javascript/traefik-label-settings.js \
@@ -55,6 +57,7 @@ fi
 
 if command -v php >/dev/null 2>&1; then
   find source tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+  php -l source/traefik.label.manager/TraefikLabelManagerIntegration.page
   php tests/php/run.php
 else
   echo 'php is unavailable; PHP checks were not run.' >&2

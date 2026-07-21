@@ -16,6 +16,13 @@
 }
 #traefik-label-manager-row input[type="text"],
 #traefik-label-manager-row select { box-sizing: border-box; width: 100%; }
+#traefik-label-manager-row .traefik-label-manager-hostname-field {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) max-content;
+  align-items: center;
+  gap: .45rem;
+}
+#traefik-label-manager-row .traefik-label-manager-suffix { white-space: nowrap; font-family: monospace; opacity: .8; }
 #traefik-label-manager-row .traefik-label-manager-help,
 #traefik-label-manager-row .traefik-label-manager-error { display: block; margin-top: .45rem; font-size: .82rem; }
 #traefik-label-manager-row .traefik-label-manager-error { color: #d9534f; }
@@ -26,6 +33,19 @@
 }
 
 #traefik-label-manager-settings { max-width: 100%; }
+.tlm-domain-settings {
+  display: grid;
+  grid-template-columns: minmax(18rem, 1fr) minmax(12rem, 24rem) max-content;
+  align-items: end;
+  gap: .75rem;
+  margin: .8rem 0;
+  padding: .8rem 1rem;
+  border: 1px solid rgba(127,127,127,.3);
+  border-radius: .35rem;
+}
+.tlm-domain-settings > div > * { display: block; }
+.tlm-domain-settings > div > span { margin-top: .2rem; opacity: .7; }
+.tlm-domain-settings input { box-sizing: border-box; width: 100%; margin: 0; }
 .tlm-page-header, .tlm-container-header, .tlm-container-actions, .tlm-modal-header {
   display: flex;
   align-items: center;
@@ -63,6 +83,42 @@
   font-family: monospace;
   line-height: 1.25;
 }
+.tlm-label-key-wrap { display: flex; align-items: center; gap: .35rem; }
+.tlm-label-key-wrap .tlm-label-key { flex: 1 1 auto; }
+.tlm-label-help {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 1.25rem;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: help;
+  opacity: .7;
+}
+.tlm-label-help:hover, .tlm-label-help:focus { opacity: 1; outline: none; }
+.tlm-floating-tooltip {
+  position: fixed;
+  z-index: 10001;
+  box-sizing: border-box;
+  width: min(24rem, calc(100vw - 1rem));
+  padding: .55rem .7rem;
+  border-radius: .3rem;
+  background: #222;
+  color: #fff;
+  box-shadow: 0 .25rem 1rem rgba(0,0,0,.3);
+  font-family: sans-serif;
+  font-size: .8rem;
+  font-weight: 400;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+}
 .tlm-label-value { min-height: 2.125rem; max-height: 10rem; resize: vertical; overflow-y: hidden; }
 .tlm-active-value { overflow-wrap: anywhere; white-space: pre-wrap; font-family: monospace; }
 .tlm-label-pending { background: rgba(255,140,47,.08); }
@@ -72,6 +128,8 @@
 .tlm-badge-traefik { background: rgba(36,150,237,.16); color: #1683cf; }
 .tlm-container-actions { justify-content: flex-end; gap: .5rem; }
 .tlm-container-actions button, .tlm-remove-label { width: auto; min-width: 0; padding: .4rem .75rem; }
+.tlm-catalog-control { display: flex; flex: 1 1 34rem; justify-content: flex-end; gap: .4rem; }
+.tlm-catalog-control select { min-width: 18rem; max-width: 38rem; }
 .tlm-primary { font-weight: 600; }
 .tlm-modal { position: fixed; inset: 0; z-index: 10000; padding: 4vh 4vw; background: rgba(0,0,0,.65); }
 .tlm-modal-card { height: 92vh; background: #fff; color: #222; border-radius: .4rem; overflow: hidden; box-shadow: 0 1rem 3rem rgba(0,0,0,.4); }
@@ -79,6 +137,9 @@
 .tlm-modal iframe { display: block; width: 100%; height: calc(92vh - 3.2rem); border: 0; }
 
 @media (max-width: 850px) {
+  .tlm-domain-settings { grid-template-columns: 1fr; align-items: stretch; }
   .tlm-label-table { min-width: 58rem; }
   .tlm-container-actions { flex-wrap: wrap; }
+  .tlm-catalog-control { flex-basis: 100%; order: -1; }
+  .tlm-catalog-control select { flex: 1 1 auto; min-width: 0; }
 }

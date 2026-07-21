@@ -229,7 +229,7 @@ final class LabelManager
             if (!is_array($label)) throw new InvalidArgumentException('Each label must be an object.');
             $key = trim((string)($label['key'] ?? ''));
             $value = (string)($label['value'] ?? '');
-            if (!$this->isAllowedKey($key)) throw new InvalidArgumentException("Label key is outside the allowed Traefik namespace: $key");
+            if (!$this->isAllowedKey($key)) throw new InvalidArgumentException("Label key is not in the Traefik Docker label catalog: $key");
             if (isset($result[$key])) throw new InvalidArgumentException("Duplicate label key: $key");
             if (strlen($value) > 4096 || str_contains($value, "\0")) throw new InvalidArgumentException("Invalid value for label: $key");
             if ($key === self::ROUTER_MARKER && !preg_match('/^tlm-[a-z0-9-]+-[0-9a-f]{8}$/', $value)) {
@@ -250,7 +250,7 @@ final class LabelManager
     private function isAllowedKey(string $key): bool
     {
         if (in_array($key, [self::ROUTER_MARKER, self::OWNS_ENABLE], true)) return true;
-        return preg_match('/^traefik\.[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?$/', $key) === 1 && strlen($key) <= 255;
+        return LabelCatalog::matches($key);
     }
 
     private function validateContainerName(string $name): string

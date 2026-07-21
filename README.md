@@ -10,7 +10,7 @@ adds a management page under **Settings → Network Services**.
 - Traefik v2 or v3 using the standalone Docker provider.
 - Traefik configured with `exposedByDefault=false` and `useBindPortIP=true`.
 - Appropriately secured Docker API access for Traefik.
-- A DNS rewrite from `*.home.arpa` to Traefik's address.
+- A DNS rewrite from the configured wildcard suffix (default: `*.home.arpa`) to Traefik's address.
 - A published TCP port on every container that should be routed.
 
 See the [Traefik Docker provider documentation](https://doc.traefik.io/traefik/reference/install-configuration/providers/docker/)
@@ -31,10 +31,12 @@ Mount the Docker socket or configure another secured Docker API endpoint for
 Traefik. Configure entrypoints, redirects, certificates, middlewares, and TLS
 policy in Traefik.
 
-Add a wildcard rewrite to the DNS server used by local clients:
+Choose the domain suffix under **Settings → Network Services → Traefik Label
+Manager**. It defaults to `home.arpa`. Add the matching wildcard rewrite to the
+DNS server used by local clients:
 
 ```text
-*.home.arpa -> <Traefik IP address>
+*.<configured-domain-suffix> -> <Traefik IP address>
 ```
 
 ## Installation
@@ -51,7 +53,7 @@ For a new route:
 
 1. Open the application's **Add/Update Container** form.
 2. Enable **Traefik route**.
-3. Verify the generated `<container>.home.arpa` hostname.
+3. Verify the generated hostname label beside the configured domain suffix.
 4. Select the published backend TCP port.
 5. Click **Apply**.
 
@@ -69,7 +71,9 @@ are pinned above the alphabetically sorted remainder. Each container shows:
 - The corresponding labels active on the current Docker container.
 - A pending indicator when template and active values differ.
 
-Only keys beginning with `traefik.` and these ownership keys are editable:
+New labels are selected from the options documented for Traefik's Docker
+provider. Hover or focus the `?` beside any label to see what it controls and
+an example value. The plugin also displays these internal ownership keys:
 
 ```text
 io.github.lukahummel.traefik-label-manager.router
@@ -87,7 +91,7 @@ previous running state.
 Containers without an Unraid user template are shown read-only.
 
 For an unmanaged container, **Enable Route** stages the same default labels as
-the Add/Update Container form: a normalized `<container>.home.arpa` hostname,
+the Add/Update Container form: a normalized `<container>.<domain-suffix>` hostname,
 deterministic router and service identifier, ownership markers, and the
 preferred published backend port. Review the generated values, then use
 **Save Template** or **Apply & Restart**.
@@ -97,7 +101,7 @@ preferred published backend port. Review the generated values, then use
 ```bash
 npm ci
 ./test.sh
-./build.sh 2026.07.21.4 1
+./build.sh 2026.07.21.5 1
 ```
 
 Build output is written to `dist/`. Building requires Docker because the TXZ is
@@ -106,7 +110,9 @@ uploads the package with its checksum-bearing plugin manifest.
 
 ## Guarantees
 
-- Only `traefik.*` and ownership labels are editable from the management page.
+- Only labels in Traefik's Docker-provider catalog can be added or saved from
+  the management page; internal ownership labels are handled by the plugin.
+- Unrecognized pre-existing Traefik labels are left untouched.
 - Unrelated template entries and Docker labels are retained.
 - Template writes are locked, validated, and atomically replaced.
 - Container recreation uses Unraid's built-in update workflow.

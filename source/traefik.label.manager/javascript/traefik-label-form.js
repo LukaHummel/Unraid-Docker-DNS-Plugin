@@ -4,6 +4,7 @@
   var MARKER = 'io.github.lukahummel.traefik-label-manager.router';
   var OWNS_ENABLE = 'io.github.lukahummel.traefik-label-manager.owns-enable';
   var ENABLE = 'traefik.enable';
+  var DOMAIN_SUFFIX = window.traefikLabelManagerConfig && window.traefikLabelManagerConfig.domainSuffix || 'home.arpa';
   var CONFIG_FIELDS = [
     'confName[]', 'confTarget[]', 'confDefault[]', 'confValue[]', 'confMode[]',
     'confDescription[]', 'confType[]', 'confDisplay[]', 'confRequired[]', 'confMask[]'
@@ -37,9 +38,8 @@
       .replace(/^-+|-+$/g, '').slice(0, 63).replace(/-+$/g, '');
   }
 
-  function automaticHostname(name) {
-    var label = normalizedLabel(name);
-    return label ? label + '.home.arpa' : '';
+  function automaticHostnameLabel(name) {
+    return normalizedLabel(name);
   }
 
   function fnv1a(value) {
@@ -121,14 +121,13 @@
     return available.length ? available[0].privatePort : null;
   }
 
-  function parseHostname(rule) {
-    var match = String(rule || '').match(/^Host\(`([a-z0-9-]+\.home\.arpa)`\)$/);
+  function parseHostnameLabel(rule) {
+    var match = String(rule || '').match(/^Host\(`([a-z0-9-]+)(?:\.[a-z0-9-]+)+`\)$/);
     return match ? match[1] : '';
   }
 
-  function validHostname(hostname) {
-    return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.home\.arpa$/.test(hostname) ||
-      /^[a-z0-9]\.home\.arpa$/.test(hostname);
+  function validHostnameLabel(hostname) {
+    return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(hostname);
   }
 
   function removeConfigIndexes(form, indexes) {
@@ -172,11 +171,11 @@
     var existing = labelMap(form);
     var oldId = existing[MARKER] && existing[MARKER][0] ? existing[MARKER][0].value : '';
     var oldRuleKey = oldId ? ownedKeys(oldId)[0] : '';
-    var initialHost = oldRuleKey && existing[oldRuleKey] ? parseHostname(existing[oldRuleKey][0].value) : '';
+    var initialHostLabel = oldRuleKey && existing[oldRuleKey] ? parseHostnameLabel(existing[oldRuleKey][0].value) : '';
     var initialPortKey = oldId ? ownedKeys(oldId)[2] : '';
     var initialPort = initialPortKey && existing[initialPortKey] ? parseInt(existing[initialPortKey][0].value, 10) : null;
     var initialName = String(nameInput.value || '').trim();
-    var hostnameWasAutomatic = !initialHost || initialHost === automaticHostname(initialName);
+    var hostnameWasAutomatic = !initialHostLabel || initialHostLabel === automaticHostnameLabel(initialName);
 
     var nativeWebui = form.querySelector('[name="contWebUI"]');
     var anchor = nativeWebui && nativeWebui.closest('dl');
@@ -184,7 +183,7 @@
     row.id = 'traefik-label-manager-row';
     row.innerHTML = '<dt>Traefik route:</dt><dd><div class="traefik-label-manager-controls">' +
       '<label><input id="traefik-label-manager-enabled" type="checkbox"> Enable route</label>' +
-      '<label><span>Hostname</span><input id="traefik-label-manager-hostname" type="text" autocomplete="off" spellcheck="false"></label>' +
+      '<label><span>Hostname</span><span class="traefik-label-manager-hostname-field"><input id="traefik-label-manager-hostname" type="text" autocomplete="off" spellcheck="false"><span id="traefik-label-manager-suffix" class="traefik-label-manager-suffix"></span></span></label>' +
       '<label><span>Backend port</span><select id="traefik-label-manager-port"></select></label></div>' +
       '<span id="traefik-label-manager-help" class="traefik-label-manager-help">Creates plugin-owned Traefik Docker labels when you click Apply.</span>' +
       '<span id="traefik-label-manager-error" class="traefik-label-manager-error" hidden></span></dd>';
@@ -193,11 +192,13 @@
 
     var enabled = row.querySelector('#traefik-label-manager-enabled');
     var hostname = row.querySelector('#traefik-label-manager-hostname');
+    var suffix = row.querySelector('#traefik-label-manager-suffix');
     var port = row.querySelector('#traefik-label-manager-port');
     var help = row.querySelector('#traefik-label-manager-help');
     var controlsTouched = false;
     enabled.checked = !!oldId;
-    hostname.value = initialHost || automaticHostname(initialName);
+    hostname.value = initialHostLabel || automaticHostnameLabel(initialName);
+    suffix.textContent = '.' + DOMAIN_SUFFIX;
 
     function refreshPorts(preferred) {
       var available = ports(form);
@@ -235,7 +236,7 @@
     hostname.addEventListener('input', function () { controlsTouched = true; hostnameWasAutomatic = false; clearError(row); });
     port.addEventListener('change', function () { controlsTouched = true; clearError(row); });
     nameInput.addEventListener('input', function () {
-      if (hostnameWasAutomatic) hostname.value = automaticHostname(nameInput.value);
+      if (hostnameWasAutomatic) hostname.value = automaticHostnameLabel(nameInput.value);
       clearError(row);
     });
     function handleConfigChange(event) {
@@ -252,12 +253,12 @@
         var currentId = currentLabels[MARKER] && currentLabels[MARKER][0] ? currentLabels[MARKER][0].value : '';
         if (currentId) {
           var ruleKey = ownedKeys(currentId)[0];
-          var savedHost = currentLabels[ruleKey] ? parseHostname(currentLabels[ruleKey][0].value) : '';
+          var savedHostLabel = currentLabels[ruleKey] ? parseHostnameLabel(currentLabels[ruleKey][0].value) : '';
           var portKey = ownedKeys(currentId)[2];
           preferred = currentLabels[portKey] ? parseInt(currentLabels[portKey][0].value, 10) : null;
           enabled.checked = true;
-          hostname.value = savedHost || automaticHostname(nameInput.value);
-          hostnameWasAutomatic = !savedHost || savedHost === automaticHostname(nameInput.value);
+          hostname.value = savedHostLabel || automaticHostnameLabel(nameInput.value);
+          hostnameWasAutomatic = !savedHostLabel || savedHostLabel === automaticHostnameLabel(nameInput.value);
         }
       }
       refreshPorts(preferred);
@@ -303,13 +304,13 @@
         return true;
       }
 
-      var chosenHost = String(hostname.value || '').trim();
+      var chosenHostLabel = String(hostname.value || '').trim();
       if (!newId) {
         showError('Enter a container name before enabling the Traefik route.', row);
         return false;
       }
-      if (!validHostname(chosenHost)) {
-        showError('Hostname must be one lowercase DNS label followed by .home.arpa.', row);
+      if (!validHostnameLabel(chosenHostLabel)) {
+        showError('Hostname must be one lowercase DNS label.', row);
         return false;
       }
       var available = ports(form);
@@ -347,7 +348,7 @@
       addLabel(form, MARKER, newId);
       if (needsEnable) addLabel(form, OWNS_ENABLE, 'true');
       var keys = ownedKeys(newId);
-      addLabel(form, keys[0], 'Host(`' + chosenHost + '`)');
+      addLabel(form, keys[0], 'Host(`' + chosenHostLabel + '.' + DOMAIN_SUFFIX + '`)');
       addLabel(form, keys[1], newId);
       addLabel(form, keys[2], String(chosenPort));
       return true;

@@ -50,7 +50,8 @@ function labels() {
 async function load({name = 'plex', webui = 'http://[IP]:[PORT:80]/', configs = []} = {}) {
   document.body.innerHTML = `<form onsubmit="return true; /* prepareConfig */"><dl><dt>WebUI</dt><dd>` +
     `<input name="contWebUI" value="${webui}"></dd></dl><input name="contName" value="${name}">` +
-    configs.join('') + '<input type="submit" value="Apply"></form>';
+    configs.join('') + '<input type="hidden" name="csrf_token" value="native-token">' +
+    '<input type="submit" value="Apply"></form>';
   window.eval(source);
   document.dispatchEvent(new Event('DOMContentLoaded'));
   await new Promise(resolve => window.setTimeout(resolve, 0));
@@ -70,6 +71,7 @@ describe('Traefik container form integration', () => {
     window.swal = vi.fn();
     window.alert = vi.fn();
     window.fetch = vi.fn();
+    window.traefikLabelManagerConfig = {domainSuffix: 'home.arpa'};
   });
 
   it('loads only on Add/Update Container pages', async () => {
@@ -81,7 +83,8 @@ describe('Traefik container form integration', () => {
   it('starts disabled and derives the hostname and WebUI private port', async () => {
     await load({configs: [config('Port', '443', '8443', 'tcp'), config('Port', '80', '8080', 'tcp')]});
     expect(document.getElementById('traefik-label-manager-enabled').checked).toBe(false);
-    expect(document.getElementById('traefik-label-manager-hostname').value).toBe('plex.home.arpa');
+    expect(document.getElementById('traefik-label-manager-hostname').value).toBe('plex');
+    expect(document.getElementById('traefik-label-manager-suffix').textContent).toBe('.home.arpa');
     expect(document.getElementById('traefik-label-manager-port').value).toBe('80');
     expect([...document.querySelectorAll('#traefik-label-manager-port option')].map(option => option.textContent))
       .toEqual(['8080 → 80/tcp', '8443 → 443/tcp']);
@@ -114,7 +117,7 @@ describe('Traefik container form integration', () => {
     ].join(''));
     await new Promise(resolve => window.setTimeout(resolve, 0));
     expect(document.getElementById('traefik-label-manager-enabled').checked).toBe(true);
-    expect(document.getElementById('traefik-label-manager-hostname').value).toBe('media.home.arpa');
+    expect(document.getElementById('traefik-label-manager-hostname').value).toBe('media');
     expect(document.getElementById('traefik-label-manager-port').value).toBe('80');
   });
 
@@ -133,6 +136,18 @@ describe('Traefik container form integration', () => {
       [`traefik.http.services.${id}.loadbalancer.server.port`]: '80'
     });
     expect(window.fetch).not.toHaveBeenCalled();
+    expect(form.querySelector('[name="csrf_token"]').value).toBe('native-token');
+  });
+
+  it('uses the configured domain suffix while exposing only the host label', async () => {
+    window.traefikLabelManagerConfig = {domainSuffix: 'apps.internal'};
+    const form = await load({configs: [config('Port', '80', '8080', 'tcp')]});
+    expect(document.getElementById('traefik-label-manager-hostname').value).toBe('plex');
+    expect(document.getElementById('traefik-label-manager-suffix').textContent).toBe('.apps.internal');
+    enableRoute();
+    expect(form.onsubmit()).toBe(true);
+    const id = routeId('plex');
+    expect(labels()[`traefik.http.routers.${id}.rule`]).toBe('Host(`plex.apps.internal`)');
   });
 
   it('reuses an existing true enable label without claiming it', async () => {
@@ -165,10 +180,10 @@ describe('Traefik container form integration', () => {
     expect(window.swal).toHaveBeenCalledWith(expect.objectContaining({text: 'Select a published TCP backend port.'}));
   });
 
-  it('rejects hostnames outside one lowercase home.arpa label', async () => {
+  it('rejects anything other than one lowercase hostname label', async () => {
     const form = await load({configs: [config('Port', '80', '8080', 'tcp')]});
     enableRoute();
-    document.getElementById('traefik-label-manager-hostname').value = 'Plex.internal.home.arpa';
+    document.getElementById('traefik-label-manager-hostname').value = 'Plex.internal';
     expect(form.onsubmit()).toBe(false);
     expect(labels()[MARKER]).toBeUndefined();
   });
@@ -185,7 +200,7 @@ describe('Traefik container form integration', () => {
     const name = document.querySelector('[name="contName"]');
     name.value = 'Plex New';
     name.dispatchEvent(new Event('input', {bubbles: true}));
-    expect(document.getElementById('traefik-label-manager-hostname').value).toBe('plex-new.home.arpa');
+    expect(document.getElementById('traefik-label-manager-hostname').value).toBe('plex-new');
     expect(form.onsubmit()).toBe(true);
     const current = labels();
     const newId = routeId('Plex New');
@@ -205,7 +220,7 @@ describe('Traefik container form integration', () => {
     const name = document.querySelector('[name="contName"]');
     name.value = 'plex-new';
     name.dispatchEvent(new Event('input', {bubbles: true}));
-    expect(document.getElementById('traefik-label-manager-hostname').value).toBe('media.home.arpa');
+    expect(document.getElementById('traefik-label-manager-hostname').value).toBe('media');
     expect(form.onsubmit()).toBe(true);
   });
 
