@@ -1,5 +1,5 @@
 {
-  "name": "unraid-docker-dns-plugin-tests",
+  "name": "unraid-traefik-label-manager-tests",
   "private": true,
   "type": "module",
   "scripts": {

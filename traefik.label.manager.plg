@@ -1,0 +1,44 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name "traefik.label.manager">
+<!ENTITY author "Luka Hummel">
+<!ENTITY version "2026.07.21.2">
+<!ENTITY build "1">
+<!ENTITY package "&name;-&version;-noarch-&build;.txz">
+<!ENTITY pluginDir "/boot/config/plugins/&name;">
+<!ENTITY packageUrl "https://github.com/LukaHummel/Unraid-Docker-DNS-Plugin/releases/download/v&version;/&package;">
+]>
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="Settings/traefik.label.manager.settings" pluginURL="https://github.com/LukaHummel/Unraid-Docker-DNS-Plugin/releases/latest/download/traefik.label.manager.plg" icon="globe" min="7.0" support="https://github.com/LukaHummel/Unraid-Docker-DNS-Plugin/issues" project="https://github.com/LukaHummel/Unraid-Docker-DNS-Plugin" readme="https://github.com/LukaHummel/Unraid-Docker-DNS-Plugin#readme">
+<CHANGES>
+###2026.07.21.2
+- Renamed the plugin to Traefik Label Manager
+- Added a Network Services page for viewing and editing Traefik labels
+- Added template-only saves and Apply &amp; Restart through Unraid's container updater
+
+###2026.07.21.1
+- Added opt-in Traefik Docker label management to Unraid container forms
+- Added editable home.arpa hostnames and published backend-port selection
+- Preserved manual labels through plugin-owned routing metadata
+</CHANGES>
+<FILE Run="/bin/bash">
+<INLINE>
+if [ -d /usr/local/emhttp/plugins/docker.dns ] || [ -d /boot/config/plugins/docker.dns ]; then
+  removepkg docker.dns 2>/dev/null || true
+  rm -rf /usr/local/emhttp/plugins/docker.dns
+  rm -rf /boot/config/plugins/docker.dns
+fi
+rm -f /boot/config/plugins/docker.dns.plg
+</INLINE>
+</FILE>
+<FILE Name="&pluginDir;/&package;" Run="upgradepkg --install-new">
+  <URL>&packageUrl;</URL>
+  <MD5>6ce9a6c500545a17b12e59b210ec9f45</MD5>
+</FILE>
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+removepkg &name; 2>/dev/null || true
+rm -rf /usr/local/emhttp/plugins/&name;
+rm -rf '&pluginDir;'
+</INLINE>
+</FILE>
+</PLUGIN>

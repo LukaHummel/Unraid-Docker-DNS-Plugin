@@ -1,14 +1,8 @@
-# Docker DNS for Unraid
+# Traefik Label Manager for Unraid
 
-Docker DNS is an Unraid 7 plugin that adds opt-in Traefik Docker labels through
-the normal **Add/Update Container** form. A route such as
-`http://plex.home.arpa` is generated from the container name and its published
-TCP port, while both values remain editable before Apply.
-
-The plugin is deliberately stateless. It does not host Traefik, configure DNS,
-store credentials, run a background service, write proxy configuration files,
-or recreate containers itself. Unraid persists the labels and performs its
-normal container update when the user clicks Apply.
+Traefik Label Manager is an Unraid 7 plugin for viewing and editing Traefik
+Docker labels. It integrates with the normal **Add/Update Container** form and
+adds a management page under **Settings → Network Services**.
 
 ## Requirements
 
@@ -16,75 +10,97 @@ normal container update when the user clicks Apply.
 - Traefik v2 or v3 using the standalone Docker provider.
 - Traefik configured with `exposedByDefault=false` and `useBindPortIP=true`.
 - Appropriately secured Docker API access for Traefik.
-- A user-managed DNS rewrite from `*.home.arpa` to Traefik's address.
+- A DNS rewrite from `*.home.arpa` to Traefik's address.
 - A published TCP port on every container that should be routed.
 
 See the [Traefik Docker provider documentation](https://doc.traefik.io/traefik/reference/install-configuration/providers/docker/)
-for static provider configuration and Docker API security considerations.
+for provider configuration and Docker API security considerations.
 
-## Installation and use
+## Traefik setup
 
-Install `docker.dns.plg` from Community Applications or paste its raw GitHub
-URL into **Plugins → Install Plugin**. Open **Settings → Docker DNS** for the
-one-time setup checklist.
+Configure the Docker provider in Traefik's static configuration:
 
-For each application:
-
-1. Open its Add/Update Container form.
-2. Enable **Traefik route**.
-3. Verify the generated `<container>.home.arpa` hostname and backend port.
-4. Click **Apply**.
-
-The plugin adds these labels:
-
-```text
-traefik.enable=true
-traefik.http.routers.<managed-id>.rule=Host(`<hostname>.home.arpa`)
-traefik.http.routers.<managed-id>.service=<managed-id>
-traefik.http.services.<managed-id>.loadbalancer.server.port=<private-port>
+```yaml
+providers:
+  docker:
+    exposedByDefault: false
+    useBindPortIP: true
 ```
 
-Two additional ownership labels ensure that later edits or disabling remove
-only plugin-managed values. Existing unrelated Docker and Traefik labels are
-preserved. The plugin does not add entrypoint, TLS, certificate resolver,
-middleware, scheme, or network labels.
+Mount the Docker socket or configure another secured Docker API endpoint for
+Traefik. Configure entrypoints, redirects, certificates, middlewares, and TLS
+policy in Traefik.
 
-Traefik entrypoints determine whether the route is available over HTTP, HTTPS,
-or both. That policy remains entirely user-managed.
+Add a wildcard rewrite to the DNS server used by local clients:
 
-## Upgrading from 2026.07.21
+```text
+*.home.arpa -> <Traefik IP address>
+```
 
-Version 2026.07.21.1 is a breaking scope reduction. Before package replacement,
-the installer stops the legacy watcher and attempts to remove DNS records and
-marker-protected proxy files managed by the previous version. Cleanup is best
-effort and does not block installation. Legacy credentials, settings, state,
-URL overrides, DNS providers, and generated Caddy/Traefik file configuration
-are then removed.
+## Installation
 
-## Uninstallation
+Install the plugin from Community Applications or use the latest manifest:
 
-Docker labels are immutable on a running container. Before uninstalling, disable
-the route and click Apply on every managed container if its labels and route
-should be removed. Uninstalling the plugin alone never recreates containers and
-therefore leaves already-applied labels intact.
+```text
+https://github.com/LukaHummel/Unraid-Docker-DNS-Plugin/releases/latest/download/traefik.label.manager.plg
+```
+
+## Container form
+
+For a new route:
+
+1. Open the application's **Add/Update Container** form.
+2. Enable **Traefik route**.
+3. Verify the generated `<container>.home.arpa` hostname.
+4. Select the published backend TCP port.
+5. Click **Apply**.
+
+The integration writes the router and service labels plus two ownership labels.
+Ownership metadata allows later edits to replace only generated labels while
+retaining unrelated Docker and Traefik configuration.
+
+## Network Services page
+
+Open **Settings → Network Services → Traefik Label Manager** to see every Docker
+container. Each container shows:
+
+- Traefik and ownership labels saved in its Unraid template.
+- The corresponding labels active on the current Docker container.
+- A pending indicator when template and active values differ.
+
+Only keys beginning with `traefik.` and these ownership keys are editable:
+
+```text
+io.github.lukahummel.traefik-label-manager.router
+io.github.lukahummel.traefik-label-manager.owns-enable
+```
+
+**Save Template** writes changes atomically to the container's Unraid template
+without interrupting the container. Docker labels are fixed when a container is
+created, so an ordinary Docker restart cannot apply them.
+
+**Apply & Restart** saves the template, then invokes Unraid's container updater.
+Unraid stops and recreates the container from the template and restores its
+previous running state.
+
+Containers without an Unraid user template are shown read-only.
 
 ## Development
 
 ```bash
 npm ci
 ./test.sh
-./build.sh 2026.07.21.1 1
+./build.sh 2026.07.21.2 1
 ```
 
 Build output is written to `dist/`. Building requires Docker because the TXZ is
-assembled in a Slackware container. A `vYYYY.MM.DD.N` tag runs the release
-workflow and uploads the package plus its checksum-bearing plugin file.
+assembled in a Slackware container. A version tag runs the release workflow and
+uploads the package with its checksum-bearing plugin manifest.
 
-## Safety guarantees
+## Guarantees
 
-- No reads or writes below `/boot/config/plugins/dockerMan/`.
-- No automatic container recreation, restart, or lifecycle operations.
-- No DNS, proxy, credential, override, or synchronization state.
-- No background daemon, cron job, or Docker event watcher.
-- Only plugin-owned label keys are replaced or removed.
-- Manual Traefik labels are preserved and exact-key conflicts block Apply.
+- Only `traefik.*` and ownership labels are editable from the management page.
+- Unrelated template entries and Docker labels are retained.
+- Template writes are locked, validated, and atomically replaced.
+- Container recreation uses Unraid's built-in update workflow.
+- Exact managed-key conflicts in the container form block Apply.

@@ -1,9 +1,9 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import fs from 'node:fs';
 
-const source = fs.readFileSync('source/docker.dns/javascript/docker-dns-form.js', 'utf8');
-const MARKER = 'io.github.lukahummel.unraid-docker-dns.router';
-const OWNS_ENABLE = 'io.github.lukahummel.unraid-docker-dns.owns-enable';
+const source = fs.readFileSync('source/traefik.label.manager/javascript/traefik-label-form.js', 'utf8');
+const MARKER = 'io.github.lukahummel.traefik-label-manager.router';
+const OWNS_ENABLE = 'io.github.lukahummel.traefik-label-manager.owns-enable';
 
 function fnv1a(value) {
   let hash = 0x811c9dc5;
@@ -16,7 +16,7 @@ function fnv1a(value) {
 
 function routeId(name) {
   const slug = name.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/g, '');
-  return `unraid-dns-${slug}-${fnv1a(name)}`;
+  return `tlm-${slug}-${fnv1a(name)}`;
 }
 
 function config(type, target, value, mode = '') {
@@ -58,7 +58,7 @@ async function load({name = 'plex', webui = 'http://[IP]:[PORT:80]/', configs = 
 }
 
 function enableRoute() {
-  const checkbox = document.getElementById('docker-dns-traefik-enabled');
+  const checkbox = document.getElementById('traefik-label-manager-enabled');
   checkbox.checked = true;
   checkbox.dispatchEvent(new Event('change', {bubbles: true}));
 }
@@ -75,21 +75,21 @@ describe('Traefik container form integration', () => {
   it('loads only on Add/Update Container pages', async () => {
     window.history.replaceState({}, '', '/Docker');
     await load({configs: [config('Port', '80', '8080', 'tcp')]});
-    expect(document.getElementById('docker-dns-traefik-row')).toBeNull();
+    expect(document.getElementById('traefik-label-manager-row')).toBeNull();
   });
 
   it('starts disabled and derives the hostname and WebUI private port', async () => {
     await load({configs: [config('Port', '443', '8443', 'tcp'), config('Port', '80', '8080', 'tcp')]});
-    expect(document.getElementById('docker-dns-traefik-enabled').checked).toBe(false);
-    expect(document.getElementById('docker-dns-traefik-hostname').value).toBe('plex.home.arpa');
-    expect(document.getElementById('docker-dns-traefik-port').value).toBe('80');
-    expect([...document.querySelectorAll('#docker-dns-traefik-port option')].map(option => option.textContent))
+    expect(document.getElementById('traefik-label-manager-enabled').checked).toBe(false);
+    expect(document.getElementById('traefik-label-manager-hostname').value).toBe('plex.home.arpa');
+    expect(document.getElementById('traefik-label-manager-port').value).toBe('80');
+    expect([...document.querySelectorAll('#traefik-label-manager-port option')].map(option => option.textContent))
       .toEqual(['8080 → 80/tcp', '8443 → 443/tcp']);
   });
 
   it('falls back to the private port with the lowest published host port', async () => {
     await load({webui: '', configs: [config('Port', '9000', '19000', 'tcp'), config('Port', '8080', '18080', 'tcp')]});
-    expect(document.getElementById('docker-dns-traefik-port').value).toBe('8080');
+    expect(document.getElementById('traefik-label-manager-port').value).toBe('8080');
   });
 
   it('creates the exact managed label set without network requests', async () => {
@@ -129,7 +129,7 @@ describe('Traefik container form integration', () => {
 
   it('cannot enable a route without a published TCP port', async () => {
     const form = await load({configs: [config('Port', '53', '53', 'udp')]});
-    const checkbox = document.getElementById('docker-dns-traefik-enabled');
+    const checkbox = document.getElementById('traefik-label-manager-enabled');
     expect(checkbox.disabled).toBe(true);
     checkbox.disabled = false;
     enableRoute();
@@ -140,7 +140,7 @@ describe('Traefik container form integration', () => {
   it('rejects hostnames outside one lowercase home.arpa label', async () => {
     const form = await load({configs: [config('Port', '80', '8080', 'tcp')]});
     enableRoute();
-    document.getElementById('docker-dns-traefik-hostname').value = 'Plex.internal.home.arpa';
+    document.getElementById('traefik-label-manager-hostname').value = 'Plex.internal.home.arpa';
     expect(form.onsubmit()).toBe(false);
     expect(labels()[MARKER]).toBeUndefined();
   });
@@ -157,7 +157,7 @@ describe('Traefik container form integration', () => {
     const name = document.querySelector('[name="contName"]');
     name.value = 'Plex New';
     name.dispatchEvent(new Event('input', {bubbles: true}));
-    expect(document.getElementById('docker-dns-traefik-hostname').value).toBe('plex-new.home.arpa');
+    expect(document.getElementById('traefik-label-manager-hostname').value).toBe('plex-new.home.arpa');
     expect(form.onsubmit()).toBe(true);
     const current = labels();
     const newId = routeId('Plex New');
@@ -177,7 +177,7 @@ describe('Traefik container form integration', () => {
     const name = document.querySelector('[name="contName"]');
     name.value = 'plex-new';
     name.dispatchEvent(new Event('input', {bubbles: true}));
-    expect(document.getElementById('docker-dns-traefik-hostname').value).toBe('media.home.arpa');
+    expect(document.getElementById('traefik-label-manager-hostname').value).toBe('media.home.arpa');
     expect(form.onsubmit()).toBe(true);
   });
 
@@ -191,7 +191,7 @@ describe('Traefik container form integration', () => {
       config('Label', `traefik.http.routers.${id}.service`, id),
       config('Label', `traefik.http.services.${id}.loadbalancer.server.port`, '80')
     ]});
-    const checkbox = document.getElementById('docker-dns-traefik-enabled');
+    const checkbox = document.getElementById('traefik-label-manager-enabled');
     checkbox.checked = false;
     checkbox.dispatchEvent(new Event('change', {bubbles: true}));
     expect(form.onsubmit()).toBe(true);
@@ -210,7 +210,7 @@ describe('Traefik container form integration', () => {
       config('Label', `traefik.http.routers.${id}.service`, id),
       config('Label', `traefik.http.services.${id}.loadbalancer.server.port`, '80')
     ]});
-    const checkbox = document.getElementById('docker-dns-traefik-enabled');
+    const checkbox = document.getElementById('traefik-label-manager-enabled');
     checkbox.checked = false;
     checkbox.dispatchEvent(new Event('change', {bubbles: true}));
     expect(form.onsubmit()).toBe(true);
@@ -236,4 +236,5 @@ describe('Traefik container form integration', () => {
     const targets = [...form.querySelectorAll('[name="confTarget[]"]')].map(input => input.value);
     expect(new Set(targets).size).toBe(targets.length);
   });
+
 });

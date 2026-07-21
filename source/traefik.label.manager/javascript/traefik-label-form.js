@@ -1,8 +1,8 @@
 (function (window, document) {
   'use strict';
 
-  var MARKER = 'io.github.lukahummel.unraid-docker-dns.router';
-  var OWNS_ENABLE = 'io.github.lukahummel.unraid-docker-dns.owns-enable';
+  var MARKER = 'io.github.lukahummel.traefik-label-manager.router';
+  var OWNS_ENABLE = 'io.github.lukahummel.traefik-label-manager.owns-enable';
   var ENABLE = 'traefik.enable';
   var CONFIG_FIELDS = [
     'confName[]', 'confTarget[]', 'confDefault[]', 'confValue[]', 'confMode[]',
@@ -10,24 +10,24 @@
   ];
 
   function reportCompatibility(message) {
-    if (window.console && console.warn) console.warn('Docker DNS: ' + message);
+    if (window.console && console.warn) console.warn('Traefik Label Manager: ' + message);
   }
 
   function showError(message, row) {
-    var target = row && row.querySelector('#docker-dns-traefik-error');
+    var target = row && row.querySelector('#traefik-label-manager-error');
     if (target) {
       target.textContent = message;
       target.hidden = false;
     }
     if (typeof window.swal === 'function') {
-      window.swal({title: 'Docker DNS', text: message, type: 'error'});
+      window.swal({title: 'Traefik Label Manager', text: message, type: 'error'});
     } else if (typeof window.alert === 'function') {
-      window.alert('Docker DNS: ' + message);
+      window.alert('Traefik Label Manager: ' + message);
     }
   }
 
   function clearError(row) {
-    var target = row.querySelector('#docker-dns-traefik-error');
+    var target = row.querySelector('#traefik-label-manager-error');
     target.textContent = '';
     target.hidden = true;
   }
@@ -54,7 +54,7 @@
 
   function routerId(name) {
     var slug = normalizedLabel(name).slice(0, 40).replace(/-+$/g, '');
-    return slug ? 'unraid-dns-' + slug + '-' + fnv1a(name) : '';
+    return slug ? 'tlm-' + slug + '-' + fnv1a(name) : '';
   }
 
   function ownedKeys(id) {
@@ -146,17 +146,17 @@
     input.type = 'hidden';
     input.name = name;
     input.value = value;
-    input.setAttribute('data-docker-dns-label', 'true');
+    input.setAttribute('data-traefik-label-manager', 'true');
     form.appendChild(input);
   }
 
   function addLabel(form, key, value) {
-    addHidden(form, 'confName[]', 'Docker DNS: ' + key);
+    addHidden(form, 'confName[]', 'Traefik Label Manager: ' + key);
     addHidden(form, 'confTarget[]', key);
     addHidden(form, 'confDefault[]', '');
     addHidden(form, 'confValue[]', value);
     addHidden(form, 'confMode[]', '');
-    addHidden(form, 'confDescription[]', 'Managed by the Docker DNS Traefik integration.');
+    addHidden(form, 'confDescription[]', 'Managed by Traefik Label Manager.');
     addHidden(form, 'confType[]', 'Label');
     addHidden(form, 'confDisplay[]', 'advanced-hide');
     addHidden(form, 'confRequired[]', 'false');
@@ -166,7 +166,7 @@
   function inject() {
     var form = document.querySelector('form[onsubmit*="prepareConfig"]');
     var nameInput = form && form.querySelector('input[name="contName"]');
-    if (document.getElementById('docker-dns-traefik-row')) return true;
+    if (document.getElementById('traefik-label-manager-row')) return true;
     if (!form || !nameInput) return false;
 
     var existing = labelMap(form);
@@ -181,19 +181,19 @@
     var nativeWebui = form.querySelector('[name="contWebUI"]');
     var anchor = nativeWebui && nativeWebui.closest('dl');
     var row = document.createElement('dl');
-    row.id = 'docker-dns-traefik-row';
-    row.innerHTML = '<dt>Traefik route:</dt><dd><div class="docker-dns-traefik-controls">' +
-      '<label><input id="docker-dns-traefik-enabled" type="checkbox"> Enable route</label>' +
-      '<label><span>Hostname</span><input id="docker-dns-traefik-hostname" type="text" autocomplete="off" spellcheck="false"></label>' +
-      '<label><span>Backend port</span><select id="docker-dns-traefik-port"></select></label></div>' +
-      '<span class="docker-dns-traefik-help">Creates plugin-owned Traefik Docker labels when you click Apply.</span>' +
-      '<span id="docker-dns-traefik-error" class="docker-dns-traefik-error" hidden></span></dd>';
+    row.id = 'traefik-label-manager-row';
+    row.innerHTML = '<dt>Traefik route:</dt><dd><div class="traefik-label-manager-controls">' +
+      '<label><input id="traefik-label-manager-enabled" type="checkbox"> Enable route</label>' +
+      '<label><span>Hostname</span><input id="traefik-label-manager-hostname" type="text" autocomplete="off" spellcheck="false"></label>' +
+      '<label><span>Backend port</span><select id="traefik-label-manager-port"></select></label></div>' +
+      '<span class="traefik-label-manager-help">Creates plugin-owned Traefik Docker labels when you click Apply.</span>' +
+      '<span id="traefik-label-manager-error" class="traefik-label-manager-error" hidden></span></dd>';
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(row, anchor.nextSibling);
     else form.insertBefore(row, form.firstChild);
 
-    var enabled = row.querySelector('#docker-dns-traefik-enabled');
-    var hostname = row.querySelector('#docker-dns-traefik-hostname');
-    var port = row.querySelector('#docker-dns-traefik-port');
+    var enabled = row.querySelector('#traefik-label-manager-enabled');
+    var hostname = row.querySelector('#traefik-label-manager-hostname');
+    var port = row.querySelector('#traefik-label-manager-port');
     enabled.checked = !!oldId;
     hostname.value = initialHost || automaticHostname(initialName);
 
@@ -243,8 +243,8 @@
       var newId = routerId(currentName);
       var currentLabels = labelMap(form);
       var managedId = currentLabels[MARKER] && currentLabels[MARKER][0] ? currentLabels[MARKER][0].value : '';
-      if (managedId && !/^unraid-dns-[a-z0-9-]+-[0-9a-f]{8}$/.test(managedId)) {
-        showError('The existing Docker DNS ownership marker is invalid.', row);
+      if (managedId && !/^tlm-[a-z0-9-]+-[0-9a-f]{8}$/.test(managedId)) {
+        showError('The existing Traefik Label Manager ownership marker is invalid.', row);
         return false;
       }
       if (!enabled.checked) {
@@ -315,7 +315,7 @@
       if (!reconcile()) return false;
       return typeof originalSubmit === 'function' ? originalSubmit.apply(this, arguments) : true;
     };
-    form.setAttribute('data-docker-dns-traefik', 'true');
+    form.setAttribute('data-traefik-label-manager', 'true');
     return true;
   }
 

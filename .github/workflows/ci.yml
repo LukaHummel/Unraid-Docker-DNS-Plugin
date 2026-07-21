@@ -42,12 +42,12 @@ jobs:
         run: ./build.sh "${GITHUB_REF_NAME#v}" 1
       - name: Verify generated checksum
         run: |
-          package="dist/docker.dns-${GITHUB_REF_NAME#v}-noarch-1.txz"
+          package="dist/traefik.label.manager-${GITHUB_REF_NAME#v}-noarch-1.txz"
           checksum="$(md5sum "$package" | awk '{print $1}')"
-          grep -Fq "<MD5>$checksum</MD5>" dist/docker.dns.plg
+          grep -Fq "<MD5>$checksum</MD5>" dist/traefik.label.manager.plg
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/docker.dns-*-noarch-1.txz
-            dist/docker.dns.plg
+            dist/traefik.label.manager-*-noarch-1.txz
+            dist/traefik.label.manager.plg

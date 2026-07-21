@@ -1,0 +1,25 @@
+Menu="NetworkServices:50"
+Title="Traefik Label Manager"
+Icon="globe"
+Tag="traefik"
+---
+<link rel="stylesheet" href="/plugins/traefik.label.manager/styles/traefik-label-manager.css?v=2026.07.21.2">
+<section id="traefik-label-manager-settings">
+  <div class="tlm-page-header">
+    <div>
+      <h2>Container labels</h2>
+      <p>View active labels and edit the values saved in each Unraid container template.</p>
+    </div>
+    <button id="tlm-refresh" type="button">Refresh</button>
+  </div>
+  <p class="tlm-notice"><strong>Save Template</strong> is non-disruptive. Docker labels change only when the container is recreated; use <strong>Apply &amp; Restart</strong> to run Unraid's container update immediately.</p>
+  <div id="tlm-page-message" role="status"></div>
+  <div id="tlm-containers" aria-live="polite"><div class="tlm-loading">Loading containers…</div></div>
+</section>
+<div id="tlm-update-modal" class="tlm-modal" hidden>
+  <div class="tlm-modal-card">
+    <div class="tlm-modal-header"><strong id="tlm-update-title">Applying container template</strong><button id="tlm-update-close" type="button">Close</button></div>
+    <iframe id="tlm-update-frame" title="Unraid container update"></iframe>
+  </div>
+</div>
+<script src="/plugins/traefik.label.manager/javascript/traefik-label-settings.js?v=2026.07.21.2"></script>
